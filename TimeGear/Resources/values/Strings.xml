@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="Hello">Hello World, Click Me!</string>
+    <string name="ApplicationName">TimeGear</string>
+  <string name="Pomodoro">Pomodoro</string>
+  <string name="Time">Czas</string>
+  
+
+  <!--PREFERENCES-->
+  <string name="WorkTime">Czas pracy</string>
+  <string name="ShortBreakTime">Czas krótkiej przerwy</string>
+  <string name="LongBreakTime">Czas długiej przerwy</string>
+  <string name="Interval">Długość cyklu</string>
+  
+  <string name="Interface">Interfejs</string>
+  <string name="Notifications">Powiadomienia</string>
+  <string name="Toolbar">Górny pasek</string>
+  <string name="EntireProgress">Postęp cyklu</string>
+  <string name="StageProgress">Postęp</string> 
+  <string name="StartButton">Przycisk</string>
+
+  <!--POMODORO TEXTS-->
+  <string name="StartWork">Rozpocznij pracę</string>
+  <string name="StartShortBreak">Rozpocznij krótką przerwę</string>
+  <string name="StartLongBreak">Rozpocznij długą przerwę</string>
+  <string name="Cancel">Anuluj</string>
+
+  <string name="Work">Praca</string>
+  <string name="ShortBreak">Krótka przerwa</string>
+  <string name="LongBreak">Długa przerwa</string>
+  <string name="Lack">Brak</string>
+</resources>

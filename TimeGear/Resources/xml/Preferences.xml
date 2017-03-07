@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+  <PreferenceCategory android:title="@string/Time">
+    <TimeGear.NumberPreference android:title="@string/WorkTime"
+                      android:key="pref_work_time"/>
+  <TimeGear.NumberPreference android:title="@string/ShortBreakTime"
+                             android:key="pref_short_break_time" />
+  <TimeGear.NumberPreference android:title ="@string/LongBreakTime"
+                             android:key="pref_long_break_time" />
+  <TimeGear.NumberPreference android:title="@string/Interval"
+                             android:key="pref_long_break_interval" />
+  </PreferenceCategory>
+  <PreferenceCategory android:title="@string/Interface">
+    <SwitchPreference android:key="pref_toolbar"
+                      android:title="@string/Toolbar"/>
+    <SwitchPreference android:key="pref_entire_progress"
+                      android:title="@string/EntireProgress"/>
+    <SwitchPreference android:key="pref_stage_progress"
+                      android:title="@string/StageProgress"/>
+    <SwitchPreference android:key="pref_start_button"
+                      android:title="@string/StartButton"/>
+  </PreferenceCategory>
+</PreferenceScreen>

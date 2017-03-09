@@ -9,25 +9,53 @@ using Android.OS;
 using Android.Runtime;
 using Android.Views;
 using Android.Widget;
+using TimeGear.Pomodoro.AndroidUtils;
 
 namespace TimeGear
 {
     [Service]
-    public class TimerService : Service
+    public class PomodoroService : Service
     {
         public Callback mCallback;
         private TimerServiceBinder mBinder;
         private TimerHandler mTimerHandler = new TimerHandler();
 
-           
-        public bool TimerRunning { get; private set; }
+        internal Pomodoro.Pomodoro mPomodoro;
 
-        public TimerService()
+        public bool TimerRunning
         {
-            mTimerHandler.SetServiceCallback(this);
-            TimerRunning = false;
+            get
+            {
+                return mPomodoro.Timer.Running;
+            }
+        }
+        public string TimerTime
+        {
+            get
+            {
+                return mPomodoro.Timer.FormatedTime;
+            }
         }
 
+        public Pomodoro.Pomodoro.State State
+        {
+            get
+            {
+               return mPomodoro.CurrentState;
+            }
+        }
+
+        public PomodoroService() :base()
+        {
+            mPomodoro = new Pomodoro.Pomodoro();
+            mTimerHandler.SetServiceCallback(this);
+            Context context = BaseContext;
+        }
+
+        public void UpdatePomodoroParams()
+        {
+            mPomodoro.SetPomodoroParams(PomodoroParamCreator.Create(this));
+        }
 
         public override IBinder OnBind(Intent intent)
         {
@@ -41,12 +69,22 @@ namespace TimeGear
             mTimerHandler.SendEmptyMessage(TimerHandler.SET_CALLBACK);
         }
 
-        public void StartTimer(int timeInMinutes)
+        public void StartTimer()
         {
-            StartTimer(timeInMinutes, 0);
+            if(mPomodoro == null)
+            {
+                mPomodoro = new Pomodoro.Pomodoro();
+                UpdatePomodoroParams();
+            }
+            mPomodoro.FinishState(); //koñczymy poprzedni stan
+            mPomodoro.StartState(); //zaczynamy nowy stan
+            if(mTimerHandler != null)
+            {
+                mTimerHandler.SendEmptyMessage(TimerHandler.START_TIMER);
+            }
         }
 
-        public void StartTimer(int minutes, int seconds)
+        /*public void StartTimer(int minutes, int seconds)
         {
             if(mTimerHandler != null)
             {
@@ -54,15 +92,33 @@ namespace TimeGear
                 mTimerHandler.SendEmptyMessage(TimerHandler.START_TIMER);
             }
             TimerRunning = true;
-        }
+        }*/
 
         public void StopTimer()
         {
+            mPomodoro.FinishState();
+            if (mTimerHandler != null)
+            {
+                mTimerHandler.SendEmptyMessage(TimerHandler.STOP_TIMER);
+            }
+        }
+
+        public void Skip()
+        {
+            mPomodoro.SkipState();
             if(mTimerHandler != null)
             {
                 mTimerHandler.SendEmptyMessage(TimerHandler.STOP_TIMER);
             }
-            TimerRunning = false;
+        }
+
+        public void Cancel()
+        {
+            mPomodoro.CancelState();
+            if(mTimerHandler != null)
+            {
+                mTimerHandler.SendEmptyMessage(TimerHandler.STOP_TIMER);
+            }
         }
 
         internal void OnTimerTick(string time)
@@ -95,14 +151,14 @@ namespace TimeGear
 
     public class TimerServiceBinder : Binder
     {
-        TimerService mService;
+        PomodoroService mService;
 
-        public TimerServiceBinder(TimerService service)
+        public TimerServiceBinder(PomodoroService service)
         {
             mService = service;
         }
 
-        public TimerService GetService()
+        public PomodoroService GetService()
         {
             return mService;
         }
@@ -166,23 +222,17 @@ namespace TimeGear
         internal const int TICK_TIMER = 2;
         internal const int SET_CALLBACK = 3;
 
-        public bool TimerRunning;
-        private TimerClock mClock;
-        private TimerService mTimerService;
+        private PomodoroService mPomodoroService;
+        private int mSemaphore; //pilnuje ¿eby w tym samym czasie móg³ byæ odpalony tylko jeden zegar
 
         public TimerHandler()
         {
-            mClock = new TimerClock();
+            mSemaphore = 1;
         }
 
-        public void SetTime(int minutes, int seconds)
+        internal void SetServiceCallback(PomodoroService service)
         {
-            mClock.SetTime(minutes, seconds);
-        }
-
-        internal void SetServiceCallback(TimerService service)
-        {
-            mTimerService = service;
+            mPomodoroService = service;
         }
 
         public override void HandleMessage(Message msg)
@@ -194,8 +244,7 @@ namespace TimeGear
                     StartTimer();
                     break;
                 case STOP_TIMER:
-                    StopTimer();
-                    break;
+
                 case TICK_TIMER:
                     OnTickTimer();
                     break;
@@ -204,33 +253,34 @@ namespace TimeGear
 
         private void StartTimer()
         {
-            TimerRunning = true;
-            SendEmptyMessageDelayed(TICK_TIMER, ONE_SECONDS);
-        }
-
-        private void OnTickTimer()
-        {
-            if (TimerRunning)
+            if(mSemaphore==1)
             {
-                
-                if(!mClock.IsZero())
-                {
-                    mClock.TickClock();
-                    mTimerService.OnTimerTick(mClock.GetFormatedTime());
-                    SendEmptyMessageDelayed(TICK_TIMER, ONE_SECONDS);
-                }
-                else
-                {
-                    StopTimer();
-                    //mTimerService.OnTimerComplete();
-                }
+                SendEmptyMessageDelayed(TICK_TIMER, ONE_SECONDS);
+                mSemaphore--;
             }
         }
 
         private void StopTimer()
-        { 
-            TimerRunning = false;
+        {
+            mSemaphore++;
         }
+
+        private void OnTickTimer()
+        {
+            if (mPomodoroService.mPomodoro.Timer.Running)
+            {
+                mPomodoroService.mPomodoro.Timer.Tick();
+                mPomodoroService.OnTimerTick(mPomodoroService.TimerTime);
+                SendEmptyMessageDelayed(TICK_TIMER, ONE_SECONDS);
+            }
+            else
+            {
+                mSemaphore=1;
+            }
+            //w przeciwnym wypadku nast¹pi zatrzymanie zegara
+        }
+
+
 
     }
 }

@@ -54,7 +54,6 @@ namespace TimeGear
                 Value = MinValue;
             }
             LayoutResource = Resource.Layout.NumberEditTextPreference;
-
         }
 
         protected override void OnClick()
@@ -65,8 +64,6 @@ namespace TimeGear
             dialog.SetCallback(this);
             dialog.Show();
         }
-
-
 
         protected override void OnBindView(View view)
         {

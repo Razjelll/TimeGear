@@ -29,4 +29,14 @@
   <string name="ShortBreak">Krótka przerwa</string>
   <string name="LongBreak">Długa przerwa</string>
   <string name="Lack">Brak</string>
+  
+  <!--CANCEL ALERT DIALOG-->
+  <string name="CancelWorkTitle">Anulowanie pracy</string>
+  <string name="CancelWorkMessage">Czy na pewno chesz anulować obecny etap</string>
+  <string name="Skip">Pomiń</string>
+  <string name="CancelState">Przerwij etap</string>
+  <string name="Back">Wróć</string>
+  <string name="CancelBreakTitle">Przerywanie przerwy</string>
+  <string name="CancelBreakMessage">Czy na pewno chcesz przerwać obecny etap</string>
+  <string name="Yes">Tak</string>
 </resources>

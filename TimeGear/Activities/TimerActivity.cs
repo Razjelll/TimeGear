@@ -5,14 +5,15 @@ using Android.Views;
 using Android.Content;
 using Android.Runtime;
 using System;
-using TimeGear.Pomodoro.AndroidUtils;
-using TimeGear.Pomodoro;
+using TimeGear.Logic.AndroidUtils;
+using TimeGear.Logic;
 using Android.Util;
+using TimeGear.Pomodoro;
 
 namespace TimeGear
 {
     [Activity(Label = "TimeGear", MainLauncher = true, Icon = "@drawable/icon")]
-    public class TimerActivity : Activity, TimerService.Callback, PomodoroCancelAlertDialog.Callback
+    public class TimerActivity : Activity, PomodoroService.Callback, PomodoroCancelAlertDialog.Callback
     {
         private const int PREFERENCES_REQUEST = 9892;
 
@@ -35,7 +36,7 @@ namespace TimeGear
         private TextView mClockTextView;
         private Button mStartButton;
 
-        private PomodoroManager mPomodoroManager;
+        //private PomodoroManager mPomodoroManager;
         private TimerServiceConnection mServiceConnection;
 
         private bool mIsConfigurationChange = false;
@@ -51,11 +52,7 @@ namespace TimeGear
             {
                 mBinder = mServiceConnection.Binder;
             } */
-            if(mPomodoroManager == null)
-            {
-                int numberIntervals = Preferences.GetNumberIntervals(BaseContext);
-                mPomodoroManager = new PomodoroManager(numberIntervals);
-            }
+           
         }
 
         protected override void OnResume()
@@ -69,12 +66,14 @@ namespace TimeGear
             {
                 mServiceConnection.Service.SetCallback(this);
             }
-            UpdateStateUI();
+            if(mServiceConnection != null && mServiceConnection.Service != null)
+            {
+                UpdateStateUI(mServiceConnection.Service.State);
+            }
         }
 
-        private void UpdateStateUI()
+        public void UpdateStateUI(Pomodoro.Pomodoro.State state)
         {
-            PomodoroManager.State state = mPomodoroManager.CurrentState;
             Log.Debug("TimerActivity", "State = " + state);
             if(mStartButton != null)
             {
@@ -84,6 +83,16 @@ namespace TimeGear
             {
                 mStageNameTextView.Text = PomodoroTexts.GetStateName(state, BaseContext);
             }
+            if(mServiceConnection!=null && mServiceConnection.Service != null)
+            {
+                mClockTextView.Text = mServiceConnection.Service.TimerTime;
+            }
+            else
+            {
+                //TODO zmienić to na coś bardziej eleganckiego
+                mClockTextView.Text = Preferences.GetWorkTime(BaseContext).ToString()+":00";
+            }
+            
         }
 
         //TODO obejrzeć
@@ -106,7 +115,7 @@ namespace TimeGear
         {
             if(mServiceConnection == null || mServiceConnection.Service == null)
             {
-                Intent intent = new Intent(this, typeof(TimerService));
+                Intent intent = new Intent(this, typeof(PomodoroService));
                 mServiceConnection = new TimerServiceConnection(this);
                 BindService(intent, mServiceConnection, Bind.AutoCreate);
             }
@@ -222,17 +231,25 @@ namespace TimeGear
             mStartButton = view.FindViewById<Button>(START_BUTTON_RESOURCE_ID);
             mStartButton.Click += delegate
             {
-                StartTimer();
+                if(mServiceConnection.Service.TimerRunning)
+                {
+                    PomodoroCancelAlertDialog dialog = new PomodoroCancelAlertDialog(this, mServiceConnection.Service.State);
+                    dialog.SetCallback(this);
+                    dialog.Show();
+                }
+                else
+                {
+                    StartTimer();
+                }
             };
         }
 
         private void StartTimer()
         {
-            mPomodoroManager.FinishState();
-            PomodoroManager.State state = mPomodoroManager.CurrentState;
-            UpdateStateUI();
-            int time = PomodoroTime.GetTime(state, BaseContext);
-            mServiceConnection.Service.StartTimer(time);
+            //mPomodoroManager.FinishState();
+            //PomodoroManager.State state = mServiceConnection.Service.State;
+            mServiceConnection.Service.StartTimer();
+            UpdateStateUI(mServiceConnection.Service.State);
         }
     
         //TimerService
@@ -243,7 +260,7 @@ namespace TimeGear
 
         public void OnTimerComplete()
         {
-            //TODO 
+            UpdateStateUI(mServiceConnection.Service.State);
         }
 
         public void OnTimerCancel()
@@ -254,12 +271,14 @@ namespace TimeGear
         public void OnSkipWork()
         {
             //mServiceConnection.Service.StopTimer();
+            mServiceConnection.Service.Skip();
             
         }
 
         public void OnCancelWork()
         {
             //mServiceConnection.Service.StopTimer();
+            mServiceConnection.Service.Cancel(); //TODO pozmieniać nazwy metod
         }
 
         public void OnServiceConnected(TimerServiceBinder binder)
@@ -285,7 +304,7 @@ namespace TimeGear
 
         private TimerActivity mActivity;
         public TimerServiceBinder Binder { get; private set; }
-        public TimerService Service
+        public PomodoroService Service
         {
             get
             {
@@ -307,6 +326,8 @@ namespace TimeGear
             if (Binder != null || Service != null)
             {
                 Service.SetCallback(mActivity);
+                Service.UpdatePomodoroParams();
+                mActivity.UpdateStateUI(Service.State);
             }
         }
 
@@ -320,7 +341,7 @@ namespace TimeGear
 
     internal class PomodoroCancelAlertDialog : AlertDialog
     {
-        private PomodoroManager.State mCurrentState;
+        private Pomodoro.Pomodoro.State mCurrentState;
         private Context mContext;
         private Callback mCallback;
 
@@ -331,11 +352,11 @@ namespace TimeGear
             void OnSkipBreak();
         }
 
-        public PomodoroCancelAlertDialog(Context context, PomodoroManager.State state) : base(context)
+        public PomodoroCancelAlertDialog(Context context, Pomodoro.Pomodoro.State state) : base(context)
         {
             mCurrentState = state;
             mContext = context;
-            if(mCurrentState == PomodoroManager.State.WORK || mCurrentState == PomodoroManager.State.BEFORE_WORK)
+            if(mCurrentState == Pomodoro.Pomodoro.State.WORK || mCurrentState == Pomodoro.Pomodoro.State.BEFORE_WORK || mCurrentState == Pomodoro.Pomodoro.State.CONTINUATION_WORK)
             {
                 PrepareWorkAlertDialog();
             }
@@ -357,12 +378,43 @@ namespace TimeGear
 
         private void PrepareWorkAlertDialog()
         {
-
+            SetTitle(mContext.GetString(Resource.String.CancelWorkTitle));
+            SetMessage(mContext.GetString(Resource.String.CancelWorkMessage));
+            SetButton(mContext.GetString(Resource.String.Cancel), (senderAlert, args) =>
+            {
+                Dismiss();
+            });
+            SetButton2(mContext.GetString(Resource.String.CancelState), (senderAlert, args) =>
+            {
+                if(mCallback != null)
+                {
+                    mCallback.OnCancelWork();
+                } //TODO dodać komunikat w przeciwnym razie
+            });
+            SetButton3(mContext.GetString(Resource.String.Skip), (senderAlert, args) =>
+            {
+                if(mCallback != null)
+                {
+                    mCallback.OnSkipWork();
+                }
+            });
         }
 
         private void PrepareBreakAlertDialog()
         {
-            
+            SetTitle(mContext.GetString(Resource.String.CancelBreakTitle));
+            SetMessage(mContext.GetString(Resource.String.CancelBreakMessage));
+            SetButton(mContext.GetString(Resource.String.Cancel), (senderAlert, args) =>
+            {
+                Dismiss();
+            });
+            SetButton2(mContext.GetString(Resource.String.Yes), (senderAlert, args) =>
+            {
+                if(mCallback!=null)
+                {
+                    mCallback.OnSkipBreak();
+                }
+            });
         }
 
 

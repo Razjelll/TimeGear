@@ -10,7 +10,7 @@ using Android.Runtime;
 using Android.Views;
 using Android.Widget;
 
-namespace TimeGear.Pomodoro.AndroidUtils
+namespace TimeGear.Logic.AndroidUtils
 {
     public class PomodoroTime
     {

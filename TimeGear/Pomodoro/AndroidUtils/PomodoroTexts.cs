@@ -9,38 +9,39 @@ using Android.OS;
 using Android.Runtime;
 using Android.Views;
 using Android.Widget;
+using static TimeGear.Pomodoro.Pomodoro;
 
-namespace TimeGear.Pomodoro
+namespace TimeGear.Logic
 {
     public class PomodoroTexts
     {
-        public static string GetButtonText(PomodoroManager.State state, Context context)
+        public static string GetButtonText(Pomodoro.Pomodoro.State state, Context context)
         {
              switch(state)
              {
-                 case PomodoroManager.State.BEFORE_WORK:
+                 case State.BEFORE_WORK:
                      return context.GetString(Resource.String.StartWork);
-                 case PomodoroManager.State.BEFORE_SHORT_BREAK:
+                 case State.BEFORE_SHORT_BREAK:
                      return context.GetString(Resource.String.StartShortBreak);
-                 case PomodoroManager.State.BEFORE_LONG_BREAK:
+                 case State.BEFORE_LONG_BREAK:
                      return context.GetString(Resource.String.StartLongBreak);
                  default:
                      return context.GetString(Resource.String.Cancel);
              }
         }
 
-        public static string GetStateName(PomodoroManager.State state, Context context)
+        public static string GetStateName(Pomodoro.Pomodoro.State state, Context context)
         {
             switch(state)
             {
-                case PomodoroManager.State.BEFORE_WORK:
-                case PomodoroManager.State.WORK:
+                case State.BEFORE_WORK:
+                case State.WORK:
                     return context.GetString(Resource.String.Work);
-                case PomodoroManager.State.BEFORE_SHORT_BREAK:
-                case PomodoroManager.State.SHORT_BREAK:
+                case State.BEFORE_SHORT_BREAK:
+                case State.SHORT_BREAK:
                     return context.GetString(Resource.String.ShortBreak);
-                case PomodoroManager.State.BEFORE_LONG_BREAK:
-                case PomodoroManager.State.LONG_BREAK:
+                case State.BEFORE_LONG_BREAK:
+                case State.LONG_BREAK:
                     return context.GetString(Resource.String.LongBreak);
             }
             return context.GetString(Resource.String.Lack);
